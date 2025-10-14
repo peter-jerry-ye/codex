@@ -2,7 +2,7 @@
   "is-main": true,
   "import": [
     {
-      "path": "peter-jerry-ye/moonbit",
+      "path": "peter-jerry-ye/codex",
       "alias": "lib"
     }
   ]
