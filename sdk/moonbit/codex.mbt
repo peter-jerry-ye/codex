@@ -2,7 +2,7 @@
 /// Codex is the main class for interacting with the Codex agent.
 ///
 /// Use the `start_thread()` method to start a new thread or `resume_thread()` to resume a previously started thread.
-pub struct Codex {
+struct Codex {
   exec : CodexExec
   options : CodexOptions
 }

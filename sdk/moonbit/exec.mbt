@@ -1,6 +1,6 @@
 ///|
 /// Arguments for executing a Codex command.
-pub struct CodexExecArgs {
+struct CodexExecArgs {
   /// The input prompt/message to send to Codex
   input : String
   /// Base URL for the API
@@ -21,6 +21,31 @@ pub struct CodexExecArgs {
   output_schema_file : String?
 }
 
+///|
+pub fn CodexExecArgs::new(
+  input : String,
+  base_url? : String,
+  api_key? : String,
+  thread_id? : String,
+  model? : String,
+  sandbox_mode? : SandboxMode,
+  working_directory? : String,
+  skip_git_repo_check? : Bool,
+  output_schema_file? : String,
+) -> CodexExecArgs {
+  {
+    input,
+    base_url,
+    api_key,
+    thread_id,
+    model,
+    sandbox_mode,
+    working_directory,
+    skip_git_repo_check,
+    output_schema_file,
+  }
+}
+
 // Constants for environment variable names
 // TODO: Use these when implementing process spawning with env vars
 
@@ -32,7 +57,7 @@ const MOONBIT_SDK_ORIGINATOR : String = "codex_sdk_moonbit"
 
 ///|
 /// The CodexExec class handles spawning and communicating with the codex CLI.
-pub struct CodexExec {
+priv struct CodexExec {
   taskgroup : @async.TaskGroup[Unit]
   executable_path : String
 }
@@ -42,7 +67,7 @@ pub struct CodexExec {
 ///
 /// # Arguments
 /// * `executable_path` - Optional path to the codex executable. Default to "codex".
-pub fn CodexExec::new(
+fn CodexExec::new(
   taskgroup~ : @async.TaskGroup[Unit],
   executable_path? : String = "codex",
 ) -> CodexExec {
@@ -61,7 +86,7 @@ pub fn CodexExec::new(
 ///
 /// # Returns
 /// An iterator that yields String lines from the Codex output
-pub fn CodexExec::run(
+fn CodexExec::run(
   self : Self,
   args : CodexExecArgs,
 ) -> @iterator.AsyncIterator[String] raise {

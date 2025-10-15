@@ -1,5 +1,5 @@
 ///|
-pub struct OutputSchemaFile {
+priv struct OutputSchemaFile {
   schema_path : String
   cleanup : async () -> Unit
 }

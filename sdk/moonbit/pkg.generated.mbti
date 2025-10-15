@@ -2,18 +2,17 @@
 package "peter-jerry-ye/codex"
 
 import(
+  "moonbitlang/async"
   "moonbitlang/core/json"
+  "peter-jerry-ye/codex/iterator"
 )
 
 // Values
-fn fib(Int) -> Int64
-
-fn sum(data~ : Array[Int], start? : Int, length? : Int) -> Int
 
 // Errors
 
 // Types and methods
-pub enum ApprovalMode {
+pub(all) enum ApprovalMode {
   Never
   OnRequest
   OnFailure
@@ -24,12 +23,17 @@ fn ApprovalMode::to_json(Self) -> Json // from trait `ToJson`
 impl ToJson for ApprovalMode
 impl @json.FromJson for ApprovalMode
 
-pub struct CodexOptions {
-  codex_path_override : String?
-  base_url : String?
-  api_key : String?
-}
+type Codex
+fn Codex::new(taskgroup~ : @async.TaskGroup[Unit], options? : CodexOptions) -> Self
+fn Codex::resume_thread(Self, String, options? : ThreadOptions) -> Thread
+fn Codex::start_thread(Self, options? : ThreadOptions) -> Thread
+
+type CodexExecArgs
+fn CodexExecArgs::new(String, base_url? : String, api_key? : String, thread_id? : String, model? : String, sandbox_mode? : SandboxMode, working_directory? : String, skip_git_repo_check? : Bool, output_schema_file? : String) -> Self
+
+type CodexOptions
 fn CodexOptions::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError // from trait `@json.FromJson`
+fn CodexOptions::new(codex_path_override? : String, base_url? : String, api_key? : String) -> Self
 fn CodexOptions::to_json(Self) -> Json // from trait `ToJson`
 impl ToJson for CodexOptions
 impl @json.FromJson for CodexOptions
@@ -40,7 +44,10 @@ pub enum CommandExecutionStatus {
   Failed
 }
 fn CommandExecutionStatus::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError // from trait `@json.FromJson`
+fn CommandExecutionStatus::output(Self, &Logger) -> Unit // from trait `Show`
 fn CommandExecutionStatus::to_json(Self) -> Json // from trait `ToJson`
+fn CommandExecutionStatus::to_string(Self) -> String // from trait `Show`
+impl Show for CommandExecutionStatus
 impl ToJson for CommandExecutionStatus
 impl @json.FromJson for CommandExecutionStatus
 
@@ -64,7 +71,10 @@ pub struct FileUpdateChange {
   kind : PatchChangeKind
 }
 fn FileUpdateChange::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError // from trait `@json.FromJson`
+fn FileUpdateChange::output(Self, &Logger) -> Unit // from trait `Show`
 fn FileUpdateChange::to_json(Self) -> Json // from trait `ToJson`
+fn FileUpdateChange::to_string(Self) -> String // from trait `Show`
+impl Show for FileUpdateChange
 impl ToJson for FileUpdateChange
 impl @json.FromJson for FileUpdateChange
 
@@ -74,7 +84,10 @@ pub enum McpToolCallStatus {
   Failed
 }
 fn McpToolCallStatus::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError // from trait `@json.FromJson`
+fn McpToolCallStatus::output(Self, &Logger) -> Unit // from trait `Show`
 fn McpToolCallStatus::to_json(Self) -> Json // from trait `ToJson`
+fn McpToolCallStatus::to_string(Self) -> String // from trait `Show`
+impl Show for McpToolCallStatus
 impl ToJson for McpToolCallStatus
 impl @json.FromJson for McpToolCallStatus
 
@@ -83,7 +96,10 @@ pub enum PatchApplyStatus {
   Failed
 }
 fn PatchApplyStatus::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError // from trait `@json.FromJson`
+fn PatchApplyStatus::output(Self, &Logger) -> Unit // from trait `Show`
 fn PatchApplyStatus::to_json(Self) -> Json // from trait `ToJson`
+fn PatchApplyStatus::to_string(Self) -> String // from trait `Show`
+impl Show for PatchApplyStatus
 impl ToJson for PatchApplyStatus
 impl @json.FromJson for PatchApplyStatus
 
@@ -93,11 +109,14 @@ pub enum PatchChangeKind {
   Update
 }
 fn PatchChangeKind::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError // from trait `@json.FromJson`
+fn PatchChangeKind::output(Self, &Logger) -> Unit // from trait `Show`
 fn PatchChangeKind::to_json(Self) -> Json // from trait `ToJson`
+fn PatchChangeKind::to_string(Self) -> String // from trait `Show`
+impl Show for PatchChangeKind
 impl ToJson for PatchChangeKind
 impl @json.FromJson for PatchChangeKind
 
-pub enum SandboxMode {
+pub(all) enum SandboxMode {
   ReadOnly
   WorkspaceWrite
   DangerFullAccess
@@ -106,6 +125,15 @@ fn SandboxMode::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeEr
 fn SandboxMode::to_json(Self) -> Json // from trait `ToJson`
 impl ToJson for SandboxMode
 impl @json.FromJson for SandboxMode
+
+pub struct StreamedTurn {
+  events : @iterator.AsyncIterator[Event]
+}
+
+type Thread
+fn Thread::id(Self) -> String?
+async fn Thread::run(Self, String, turn_options? : TurnOptions) -> Turn
+async fn Thread::run_streamed(Self, String, turn_options? : TurnOptions) -> StreamedTurn
 
 pub struct ThreadError {
   message : String
@@ -130,13 +158,9 @@ fn ThreadItem::to_json(Self) -> Json // from trait `ToJson`
 impl ToJson for ThreadItem
 impl @json.FromJson for ThreadItem
 
-pub struct ThreadOptions {
-  model : String?
-  sandbox_mode : SandboxMode?
-  working_directory : String?
-  skip_git_repo_check : Bool?
-}
+type ThreadOptions
 fn ThreadOptions::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError // from trait `@json.FromJson`
+fn ThreadOptions::new(model? : String, sandbox_mode? : SandboxMode, working_directory? : String, skip_git_repo_check? : Bool) -> Self
 fn ThreadOptions::to_json(Self) -> Json // from trait `ToJson`
 impl ToJson for ThreadOptions
 impl @json.FromJson for ThreadOptions
@@ -146,14 +170,22 @@ pub struct TodoItem {
   completed : Bool
 }
 fn TodoItem::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError // from trait `@json.FromJson`
+fn TodoItem::output(Self, &Logger) -> Unit // from trait `Show`
 fn TodoItem::to_json(Self) -> Json // from trait `ToJson`
+fn TodoItem::to_string(Self) -> String // from trait `Show`
+impl Show for TodoItem
 impl ToJson for TodoItem
 impl @json.FromJson for TodoItem
 
-pub(all) struct TurnOptions {
-  output_schema : Json?
+pub struct Turn {
+  items : Array[ThreadItem]
+  final_response : String
+  usage : Usage?
 }
+
+type TurnOptions
 fn TurnOptions::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError // from trait `@json.FromJson`
+fn TurnOptions::new(output_schema? : Json) -> Self
 fn TurnOptions::to_json(Self) -> Json // from trait `ToJson`
 impl ToJson for TurnOptions
 impl @json.FromJson for TurnOptions
@@ -169,6 +201,11 @@ impl ToJson for Usage
 impl @json.FromJson for Usage
 
 // Type aliases
+pub typealias String as Input
+
+pub typealias Turn as RunResult
+
+pub typealias StreamedTurn as RunStreamedResult
 
 // Traits
 

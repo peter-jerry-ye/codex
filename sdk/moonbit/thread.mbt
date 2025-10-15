@@ -30,7 +30,7 @@ pub typealias String as Input
 
 ///|
 /// Represent a thread of conversation with the agent. One thread can have multiple consecutive turns.
-pub struct Thread {
+struct Thread {
   exec : CodexExec
   options : CodexOptions
   mut id : String?
@@ -51,7 +51,7 @@ pub fn Thread::id(self : Thread) -> String? {
 /// * `options` - Configuration options for the Codex client
 /// * `thread_options` - Options specific to this thread
 /// * `id` - Optional thread ID to resume an existing thread
-pub fn Thread::new(
+fn Thread::new(
   exec : CodexExec,
   options : CodexOptions,
   thread_options : ThreadOptions,
