@@ -117,15 +117,18 @@ async fn Thread::run_streamed_internal(
         }
         yield_(event)
       }
+      if schema_file is Some(sf) {
+        (sf.cleanup)()
+      }
     } catch {
       e => {
         if schema_file is Some(sf) {
           (sf.cleanup)()
         }
-        raise e
+        while generator.throws(e) is Some(_) {
+          // Drain remaining items to avoid unhandled promise rejection
+        }
       }
-    } noraise {
-      _ => if schema_file is Some(sf) { (sf.cleanup)() }
     }
   })
 }
