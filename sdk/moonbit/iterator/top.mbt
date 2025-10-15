@@ -7,71 +7,104 @@ async fn[T, E : Error] async_suspend(
 fn run_async(f : async () -> Unit noraise) = "%async.run"
 
 ///|
-pub struct AsyncIterator[T] {
-  next : async () -> T?
-  throws : async (Error) -> T?
-  returns : async () -> T?
+struct AsyncIterator[T] {
+  mut consumer : ((Result[T?, Error]) -> Unit)?
+  mut ok_cont : (Unit) -> Unit
+  mut err_cont : (Error) -> Unit
 }
 
 ///|
 pub async fn[T] AsyncIterator::next(self : AsyncIterator[T]) -> T? {
-  (self.next)()
+  guard self.consumer is None else { raise Running }
+  async_suspend((resolve, reject) => {
+    self.consumer = Some(value => match value {
+      Ok(v) => resolve(v)
+      Err(e) => reject(e)
+    })
+    (self.ok_cont)(())
+  })
 }
 
 ///|
 pub async fn[T] AsyncIterator::throws(self : AsyncIterator[T], e : Error) -> T? {
-  (self.throws)(e)
+  guard self.consumer is None else { raise Running }
+  async_suspend((resolve, reject) => {
+    self.consumer = Some(value => match value {
+      Ok(v) => resolve(v)
+      Err(e) => reject(e)
+    })
+    (self.err_cont)(e)
+  })
 }
 
 ///|
 pub async fn[T] AsyncIterator::returns(self : AsyncIterator[T]) -> T? {
-  (self.returns)()
+  guard self.consumer is None else { raise Running }
+  async_suspend((resolve, reject) => {
+    self.consumer = Some(value => match value {
+      Ok(v) => resolve(v)
+      Err(e) => reject(e)
+    })
+    (self.err_cont)(Return)
+  })
 }
 
 ///|
 pub suberror Return
 
 ///|
+pub suberror Running
+
+///|
 pub fn[T] AsyncIterator::new(
   f : async (async (T) -> Unit) -> Unit,
 ) -> AsyncIterator[T] {
-  let mut next : Result[T?, Error] = Ok(None)
-  let mut ok_cont : (Unit) -> Unit = _ => ()
-  let mut err_cont : (Error) -> Unit = _ => ()
+  let iterator = { consumer: None, ok_cont: _ => (), err_cont: _ => () }
   async fn yield_(value) {
     async_suspend((resolve, reject) => {
-      next = Ok(Some(value))
-      ok_cont = resolve
-      err_cont = reject
+      iterator.ok_cont = resolve
+      iterator.err_cont = reject
+      guard iterator.consumer is Some(consumer)
+      iterator.consumer = None
+      consumer(Ok(Some(value)))
     })
   }
 
-  ok_cont = _ => run_async(fn() {
-    defer {
-      ok_cont = _ => ()
-      err_cont = _ => ()
+  iterator.ok_cont = _ => run_async(fn() {
+    let ok_fin = _ => {
+      guard iterator.consumer is Some(consumer)
+      iterator.consumer = None
+      consumer(Ok(None))
+    }
+    let err_fin = _ => {
+      guard iterator.consumer is Some(consumer)
+      iterator.consumer = None
+      consumer(Ok(None))
     }
     try f(yield_) catch {
-      Return => ()
-      e => next = Err(e)
+      Return => {
+        iterator.ok_cont = ok_fin
+        iterator.err_cont = err_fin
+        guard iterator.consumer is Some(consumer)
+        iterator.consumer = None
+        consumer(Ok(None))
+      }
+      e => {
+        iterator.ok_cont = ok_fin
+        iterator.err_cont = err_fin
+        guard iterator.consumer is Some(consumer)
+        iterator.consumer = None
+        consumer(Err(e))
+      }
     } noraise {
-      _ => next = Ok(None)
+      _ => {
+        iterator.ok_cont = ok_fin
+        iterator.err_cont = err_fin
+        guard iterator.consumer is Some(consumer)
+        iterator.consumer = None
+        consumer(Ok(None))
+      }
     }
   })
-  AsyncIterator::{
-    next: fn() {
-      ok_cont(())
-      next.unwrap_or_error()
-    },
-    throws: fn(e) {
-      next = Ok(None)
-      err_cont(e)
-      next.unwrap_or_error()
-    },
-    returns: fn() {
-      next = Ok(None)
-      err_cont(Return)
-      next.unwrap_or_error()
-    },
-  }
+  iterator
 }
