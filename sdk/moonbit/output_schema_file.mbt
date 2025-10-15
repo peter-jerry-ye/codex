@@ -5,8 +5,11 @@ pub struct OutputSchemaFile {
 }
 
 ///|
+extern "C" fn random() -> UInt = "arc4random"
+
+///|
 async fn create_output_schema_file(schema : Json) -> OutputSchemaFile {
-  let dir = "/tmp/codex-output-schema-XXXXXX"
+  let dir = "/tmp/codex-output-schema-\{random()}"
   let path = "\{dir}/schema.json"
   @fs.mkdir(dir, permission=0o700)
   let cleanup = async fn() { @fs.rmdir(dir, recursive=true) }
