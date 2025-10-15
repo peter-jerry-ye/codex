@@ -128,7 +128,8 @@ pub fn CodexExec::run(
                 e => raise e
               })
               is Some(length) {
-          yield_(@encoding/utf8.decode(reader.read_exactly(length)))
+          yield_(@encoding/utf8.decode(reader[:length]))
+          reader.drop(length + 1)
         } else {
           yield_(reader.read_all().text())
         }
@@ -140,9 +141,8 @@ pub fn CodexExec::run(
                 e => raise e
               })
               is Some(length) {
-          stderr_chunks.write_string(
-            @encoding/utf8.decode(reader.read_exactly(length)),
-          )
+          stderr_chunks.write_string(@encoding/utf8.decode(reader[:length]))
+          reader.drop(length + 1)
         } else {
           stderr_chunks.write_string(reader.read_all().text())
         }
