@@ -33,6 +33,7 @@ const MOONBIT_SDK_ORIGINATOR : String = "codex_sdk_moonbit"
 ///|
 /// The CodexExec class handles spawning and communicating with the codex CLI.
 pub struct CodexExec {
+  taskgroup : @async.TaskGroup[Unit]
   executable_path : String
 }
 
@@ -41,9 +42,12 @@ pub struct CodexExec {
 ///
 /// # Arguments
 /// * `executable_path` - Optional path to the codex executable. Default to "codex".
-pub fn CodexExec::new(executable_path? : String = "codex") -> CodexExec {
+pub fn CodexExec::new(
+  taskgroup~ : @async.TaskGroup[Unit],
+  executable_path? : String = "codex",
+) -> CodexExec {
   // For simplicity, we assume "codex" is in PATH if not provided.
-  { executable_path, }
+  { taskgroup, executable_path }
 }
 
 ///|
@@ -60,7 +64,7 @@ pub fn CodexExec::new(executable_path? : String = "codex") -> CodexExec {
 pub fn CodexExec::run(
   self : Self,
   args : CodexExecArgs,
-) -> @iterator.AsyncIterator[String] {
+) -> @iterator.AsyncIterator[String] raise {
   // Build command arguments
   let command_args : Array[String] = ["exec", "--experimental-json"]
 
@@ -101,56 +105,64 @@ pub fn CodexExec::run(
   if args.api_key is Some(api_key) {
     extra_env.set("CODEX_API_KEY", api_key)
   }
+  let stdin = @process.write_to_process()
+  let stdout = @process.read_from_process()
+  let stderr = @process.read_from_process()
+  let stderr_chunks = StringBuilder::new()
+  self.taskgroup.spawn_bg(() => {
+    let exit_code = @process.run(
+      self.executable_path,
+      command_args,
+      stdin=stdin.0,
+      stdout=stdout.1,
+      stderr=stderr.1,
+      extra_env~,
+    )
+    if exit_code != 0 {
+      fail("Codex CLI failed: \{stderr_chunks.to_string()}")
+    }
+  })
+  self.taskgroup.spawn_bg(() => {
+    stdin.1.write(args.input)
+    stdin.1.close()
+  })
+  self.taskgroup.spawn_bg(() => {
+    let reader = @io.BufferedReader::new(stderr.0)
+    while (Some(reader.find(b"\n")) catch {
+            @io.ReaderClosed => None
+            e => raise e
+          })
+          is Some(length) {
+      let text = @encoding/utf8.decode(reader[:length])
+      stderr_chunks.write_string(text)
+      reader.drop(length + 1)
+    } else {
+      let text = reader.read_all().text()
+      stderr_chunks.write_string(text)
+    }
+  })
 
   // CodexExec
   @iterator.AsyncIterator::new(fn(yield_) {
-    @async.with_task_group(taskgroup => {
-      let stdin = @process.write_to_process()
-      let stdout = @process.read_from_process()
-      let stderr = @process.read_from_process()
-      let stderr_chunks = StringBuilder::new()
-      let child = taskgroup.spawn(() => @process.run(
-        self.executable_path,
-        command_args,
-        stdin=stdin.0,
-        stdout=stdout.1,
-        stderr=stderr.1,
-        extra_env~,
-      ))
-      taskgroup.spawn_bg(() => {
-        stdin.1.write(args.input)
-        stdin.1.close()
-      })
-      taskgroup.spawn_bg(() => {
-        let reader = @io.BufferedReader::new(stdout.0)
-        while (Some(reader.find(b"\n")) catch {
-                @io.ReaderClosed => None
-                e => raise e
-              })
-              is Some(length) {
-          yield_(@encoding/utf8.decode(reader[:length]))
-          reader.drop(length + 1)
-        } else {
-          yield_(reader.read_all().text())
-        }
-      })
-      taskgroup.spawn_bg(() => {
-        let reader = @io.BufferedReader::new(stderr.0)
-        while (Some(reader.find(b"\n")) catch {
-                @io.ReaderClosed => None
-                e => raise e
-              })
-              is Some(length) {
-          stderr_chunks.write_string(@encoding/utf8.decode(reader[:length]))
-          reader.drop(length + 1)
-        } else {
-          stderr_chunks.write_string(reader.read_all().text())
-        }
-      })
-      if child.wait() != 0 {
-        fail("Codex CLI failed: \{stderr_chunks.to_string()}")
+    let reader = @io.BufferedReader::new(stdout.0)
+    try {
+      while true {
+        let length = reader.find(b"\n")
+        let text = @encoding/utf8.decode(reader[:length])
+        yield_(text)
+        reader.drop(length + 1)
       }
-    })
+    } catch {
+      @io.ReaderClosed => {
+        let text = reader.read_all().text()
+        if !text.is_empty() {
+          yield_(text)
+        }
+      }
+      e => raise e
+    } noraise {
+      _ => ()
+    }
   })
 }
 

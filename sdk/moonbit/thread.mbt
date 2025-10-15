@@ -69,7 +69,7 @@ pub fn Thread::new(
 ///
 /// # Returns
 /// A StreamedTurn containing an async iterator of events
-pub fn Thread::run_streamed(
+pub async fn Thread::run_streamed(
   self : Thread,
   input : String,
   turn_options? : TurnOptions = TurnOptions::{ output_schema: None },
@@ -79,34 +79,34 @@ pub fn Thread::run_streamed(
 
 ///|
 /// Internal implementation of run_streamed that returns the event iterator directly.
-fn Thread::run_streamed_internal(
+async fn Thread::run_streamed_internal(
   self : Thread,
   input : String,
   turn_options : TurnOptions,
 ) -> @iterator.AsyncIterator[Event] {
-  @iterator.AsyncIterator::new(async fn(yield_) {
-    let schema_file = if turn_options.output_schema is Some(schema) &&
-      !(schema is Null) {
-      Some(create_output_schema_file(schema))
+  let schema_file = if turn_options.output_schema is Some(schema) &&
+    !(schema is Null) {
+    Some(create_output_schema_file(schema))
+  } else {
+    None
+  }
+  let options = self.thread_options
+  let generator = self.exec.run({
+    input,
+    base_url: self.options.base_url,
+    api_key: self.options.api_key,
+    thread_id: self.id,
+    model: options.model,
+    sandbox_mode: options.sandbox_mode,
+    working_directory: options.working_directory,
+    skip_git_repo_check: options.skip_git_repo_check,
+    output_schema_file: if schema_file is Some(sf) {
+      Some(sf.schema_path)
     } else {
       None
-    }
-    let options = self.thread_options
-    let generator = self.exec.run({
-      input,
-      base_url: self.options.base_url,
-      api_key: self.options.api_key,
-      thread_id: self.id,
-      model: options.model,
-      sandbox_mode: options.sandbox_mode,
-      working_directory: options.working_directory,
-      skip_git_repo_check: options.skip_git_repo_check,
-      output_schema_file: if schema_file is Some(sf) {
-        Some(sf.schema_path)
-      } else {
-        None
-      },
-    })
+    },
+  })
+  @iterator.AsyncIterator::new(async fn(yield_) {
     try {
       while generator.next() is Some(item) {
         let event = @json.from_json(@json.parse(item)) catch {
@@ -124,6 +124,8 @@ fn Thread::run_streamed_internal(
         }
         raise e
       }
+    } noraise {
+      _ => if schema_file is Some(sf) { (sf.cleanup)() }
     }
   })
 }

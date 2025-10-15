@@ -16,13 +16,17 @@ pub struct Codex {
 /// # Returns
 /// A new Codex instance
 pub fn Codex::new(
+  taskgroup~ : @async.TaskGroup[Unit],
   options? : CodexOptions = CodexOptions::{
     codex_path_override: None,
     base_url: None,
     api_key: None,
   },
 ) -> Codex {
-  let exec = CodexExec::new(executable_path?=options.codex_path_override)
+  let exec = CodexExec::new(
+    taskgroup~,
+    executable_path?=options.codex_path_override,
+  )
   { exec, options }
 }
 

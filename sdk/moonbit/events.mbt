@@ -31,7 +31,7 @@ pub impl ToJson for Event with to_json(event) {
     ItemStarted(item) => { "type": "item.started", "item": item.to_json() }
     ItemUpdated(item) => { "type": "item.updated", "item": item.to_json() }
     ItemCompleted(item) => { "type": "item.completed", "item": item.to_json() }
-    ThreadErrorEvent(message) => { "type": "thread.error", "message": message }
+    ThreadErrorEvent(message) => { "type": "error", "message": message }
   }
 }
 
@@ -85,13 +85,13 @@ pub impl @json.FromJson for Event with from_json(value, path) {
           raise @json.JsonDecodeError((path, "error parsing item: \{error}"))
       }
       match ty {
-        "item_started" => ItemStarted(item)
-        "item_updated" => ItemUpdated(item)
-        "item_completed" => ItemCompleted(item)
+        "item.started" => ItemStarted(item)
+        "item.updated" => ItemUpdated(item)
+        "item.completed" => ItemCompleted(item)
         _ => raise @json.JsonDecodeError((path, "unreachable"))
       }
     }
-    "thread.error" => {
+    "error" => {
       guard obj is { "message": String(message), .. } else {
         raise @json.JsonDecodeError(
           (path, "expected ThreadErrorEvent, got \{obj}"),
