@@ -1,7 +1,7 @@
 ///|
 async test {
   // async iterator
-  let iterator = AsyncIterator::new(fn(yield_) {
+  let iterator = AsyncGenerator::new(fn(yield_) {
     for i = 0; ; i = i + 1 {
       yield_(i) catch {
         Failure(e) => {

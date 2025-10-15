@@ -7,14 +7,14 @@ async fn[T, E : Error] async_suspend(
 fn run_async(f : async () -> Unit noraise) = "%async.run"
 
 ///|
-struct AsyncIterator[T] {
+struct AsyncGenerator[T] {
   mut consumer : ((Result[T?, Error]) -> Unit)?
   mut ok_cont : (Unit) -> Unit
   mut err_cont : (Error) -> Unit
 }
 
 ///|
-pub async fn[T] AsyncIterator::next(self : AsyncIterator[T]) -> T? {
+pub async fn[T] AsyncGenerator::next(self : AsyncGenerator[T]) -> T? {
   guard self.consumer is None else { raise Running }
   async_suspend((resolve, reject) => {
     self.consumer = Some(value => match value {
@@ -26,7 +26,7 @@ pub async fn[T] AsyncIterator::next(self : AsyncIterator[T]) -> T? {
 }
 
 ///|
-pub async fn[T] AsyncIterator::throws(self : AsyncIterator[T], e : Error) -> T? {
+pub async fn[T] AsyncGenerator::throws(self : AsyncGenerator[T], e : Error) -> T? {
   guard self.consumer is None else { raise Running }
   async_suspend((resolve, reject) => {
     self.consumer = Some(value => match value {
@@ -38,7 +38,7 @@ pub async fn[T] AsyncIterator::throws(self : AsyncIterator[T], e : Error) -> T? 
 }
 
 ///|
-pub async fn[T] AsyncIterator::returns(self : AsyncIterator[T]) -> T? {
+pub async fn[T] AsyncGenerator::returns(self : AsyncGenerator[T]) -> T? {
   guard self.consumer is None else { raise Running }
   async_suspend((resolve, reject) => {
     self.consumer = Some(value => match value {
@@ -56,9 +56,9 @@ pub suberror Return
 pub suberror Running
 
 ///|
-pub fn[T] AsyncIterator::new(
+pub fn[T] AsyncGenerator::new(
   f : async (async (T) -> Unit) -> Unit,
-) -> AsyncIterator[T] {
+) -> AsyncGenerator[T] {
   let iterator = { consumer: None, ok_cont: _ => (), err_cont: _ => () }
   async fn yield_(value) {
     async_suspend((resolve, reject) => {

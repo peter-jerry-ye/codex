@@ -1,7 +1,7 @@
 {
   "import": [
     "moonbitlang/async",
-    "peter-jerry-ye/codex/iterator",
+    "peter-jerry-ye/codex/generator",
     "moonbitlang/async/fs",
     "moonbitlang/async/io",
     "moonbitlang/x/sys",

@@ -89,7 +89,7 @@ fn CodexExec::new(
 fn CodexExec::run(
   self : Self,
   args : CodexExecArgs,
-) -> @iterator.AsyncIterator[String] raise {
+) -> @generator.AsyncGenerator[String] raise {
   // Build command arguments
   let command_args : Array[String] = ["exec", "--experimental-json"]
 
@@ -168,7 +168,7 @@ fn CodexExec::run(
   })
 
   // CodexExec
-  @iterator.AsyncIterator::new(fn(yield_) {
+  @generator.AsyncGenerator::new(fn(yield_) {
     let reader = @io.BufferedReader::new(stdout.0)
     try {
       while true {

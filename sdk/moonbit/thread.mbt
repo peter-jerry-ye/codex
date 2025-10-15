@@ -17,7 +17,7 @@ pub typealias Turn as RunResult
 /// The result of the `run_streamed` method.
 pub struct StreamedTurn {
   /// An async iterator of events produced during the turn
-  events : @iterator.AsyncIterator[Event]
+  events : @generator.AsyncGenerator[Event]
 }
 
 ///|
@@ -83,7 +83,7 @@ async fn Thread::run_streamed_internal(
   self : Thread,
   input : String,
   turn_options : TurnOptions,
-) -> @iterator.AsyncIterator[Event] {
+) -> @generator.AsyncGenerator[Event] {
   let schema_file = if turn_options.output_schema is Some(schema) &&
     !(schema is Null) {
     Some(create_output_schema_file(schema))
@@ -106,7 +106,7 @@ async fn Thread::run_streamed_internal(
       None
     },
   })
-  @iterator.AsyncIterator::new(async fn(yield_) {
+  @generator.AsyncGenerator::new(async fn(yield_) {
     try {
       while generator.next() is Some(item) {
         let event = @json.from_json(@json.parse(item)) catch {
