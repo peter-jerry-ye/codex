@@ -2,7 +2,7 @@
 
 ///|
 /// Options for configuring the Codex client.
-pub struct CodexOptions {
+struct CodexOptions {
   /// Override the path to the codex executable
   codex_path_override : String?
   /// Base URL for the API
@@ -14,11 +14,20 @@ pub struct CodexOptions {
   @json.FromJson(rename_fields="camelCase"),
 )
 
+///|
+pub fn CodexOptions::new(
+  codex_path_override? : String,
+  base_url? : String,
+  api_key? : String,
+) -> CodexOptions {
+  CodexOptions::{ codex_path_override, base_url, api_key }
+}
+
 // threadOptions.ts
 
 ///|
 /// Approval mode for actions that require user consent.
-pub enum ApprovalMode {
+pub(all) enum ApprovalMode {
   /// Never ask for approval
   Never
   /// Ask for approval on request
@@ -55,7 +64,7 @@ pub impl @json.FromJson for ApprovalMode with from_json(value, path) {
 
 ///|
 /// Sandbox mode that controls the level of access the agent has.
-pub enum SandboxMode {
+pub(all) enum SandboxMode {
   /// Read-only access
   ReadOnly
   /// Write access to workspace
@@ -88,7 +97,7 @@ pub impl @json.FromJson for SandboxMode with from_json(value, path) {
 
 ///|
 /// Options for configuring a thread.
-pub struct ThreadOptions {
+struct ThreadOptions {
   /// The model to use for the thread
   model : String?
   /// The sandbox mode
@@ -102,14 +111,29 @@ pub struct ThreadOptions {
   @json.FromJson(rename_fields="camelCase"),
 )
 
+///|
+pub fn ThreadOptions::new(
+  model? : String,
+  sandbox_mode? : SandboxMode,
+  working_directory? : String,
+  skip_git_repo_check? : Bool,
+) -> ThreadOptions {
+  ThreadOptions::{ model, sandbox_mode, working_directory, skip_git_repo_check }
+}
+
 // turnOptions.ts
 
 ///|
 /// Options for configuring a turn.
-pub(all) struct TurnOptions {
+struct TurnOptions {
   /// JSON schema describing the expected agent output
   output_schema : Json?
 } derive (
   ToJson(rename_fields="camelCase"),
   @json.FromJson(rename_fields="camelCase"),
 )
+
+///|
+pub fn TurnOptions::new(output_schema? : Json) -> TurnOptions {
+  TurnOptions::{ output_schema, }
+}

@@ -60,7 +60,6 @@ pub fn[T] AsyncIterator::new(
   })
   AsyncIterator::{
     next: fn() {
-      next = Ok(None)
       ok_cont(())
       next.unwrap_or_error()
     },

@@ -187,14 +187,14 @@ pub impl @json.FromJson for ThreadItem with from_json(value, path) {
 pub struct FileUpdateChange {
   path : String
   kind : PatchChangeKind
-} derive(ToJson, @json.FromJson)
+} derive(ToJson, @json.FromJson, Show)
 
 ///|
 /// An item in the agent's to-do list.
 pub struct TodoItem {
   text : String
   completed : Bool
-} derive(ToJson, @json.FromJson)
+} derive(ToJson, @json.FromJson, Show)
 
 ///|
 /// The status of a command execution.
@@ -202,7 +202,7 @@ pub enum CommandExecutionStatus {
   InProgress
   Completed
   Failed
-}
+} derive(Show)
 
 ///|
 pub impl ToJson for CommandExecutionStatus with to_json(status) {
@@ -235,7 +235,7 @@ pub enum PatchChangeKind {
   Add
   Delete
   Update
-}
+} derive(Show)
 
 ///|
 pub impl ToJson for PatchChangeKind with to_json(kind) {
@@ -267,7 +267,7 @@ pub impl @json.FromJson for PatchChangeKind with from_json(value, path) {
 pub enum PatchApplyStatus {
   Completed
   Failed
-}
+} derive(Show)
 
 ///|
 pub impl ToJson for PatchApplyStatus with to_json(status) {
@@ -298,7 +298,7 @@ pub enum McpToolCallStatus {
   InProgress
   Completed
   Failed
-}
+} derive(Show)
 
 ///|
 pub impl ToJson for McpToolCallStatus with to_json(status) {
