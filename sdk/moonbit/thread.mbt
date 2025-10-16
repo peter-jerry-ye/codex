@@ -163,6 +163,9 @@ pub async fn Thread::run(
       TurnCompleted(u) => usage = Some(u)
       TurnFailed(error) => {
         turn_failure = Some(error)
+        while generator.returns() is Some(_) {
+          // Drain remaining items to avoid unhandled promise rejection
+        }
         break
       }
       _ => ()
