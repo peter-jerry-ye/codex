@@ -183,8 +183,6 @@ fn CodexExec::run(
             }
           }
           e => raise e
-        } noraise {
-          _ => ()
         }
       })
     })

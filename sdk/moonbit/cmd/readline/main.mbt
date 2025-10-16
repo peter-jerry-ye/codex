@@ -16,7 +16,23 @@ async fn main {
       if line.trim_space().is_empty() {
         continue
       }
-      let turn = thread.run(line)
+      let turn = @async.with_task_group(taskgroup => {
+        taskgroup.add_defer(() => @pipe.stdout.write(b"\r"))
+        taskgroup.spawn_bg(
+          () => while true {
+            @async.sleep(500)
+            @pipe.stdout.write(b"\r\\")
+            @async.sleep(500)
+            @pipe.stdout.write(b"\r|")
+            @async.sleep(500)
+            @pipe.stdout.write(b"\r/")
+            @async.sleep(500)
+            @pipe.stdout.write(b"\r-")
+          },
+          no_wait=true,
+        )
+        thread.run(line)
+      })
       @pipe.stdout.write(turn.final_response)
       @pipe.stdout.write("\n")
     } catch {
